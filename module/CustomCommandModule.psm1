@@ -1,3 +1,4 @@
+
 $global:commandDir = "C:\Users\ZERO\commands"
 
 function Register-CustomCommands {
@@ -21,20 +22,20 @@ function global:$commandName {
         Invoke-Expression $functionDefinition
 
         if (Test-Path Function:\$commandName) {
-            # Write-Host "Registered command $commandName, executable: $exePath" -ForegroundColor Green
+            Write-Host "Registered command $commandName, executable: $exePath" -ForegroundColor Green
         } else {
             # Write-Host "Failed to register command $commandName, executable: $exePath" -ForegroundColor Red
         }
     }
 }
 
-function cnc {
+function cedit {
     param (
         [string]$commandName
     )
     & "C:\Users\ZERO\Documents\GitHub\rust_command_loader\target\release\rust_command_loader.exe" cnc $commandName
     if ($LASTEXITCODE -eq 0) {
-        # Write-Host "Command $commandName created/edited successfully." -ForegroundColor Green
+        Write-Host "Command $commandName created/edited successfully." -ForegroundColor Green
     } else {
         # Write-Host "Failed to create/edit command $commandName." -ForegroundColor Red
     }
@@ -88,7 +89,7 @@ function chelp {
     }
     
     Write-Host "`nUsage:" -ForegroundColor Cyan
-    Write-Host "  cnc <command_name>    : Create or edit a command" -ForegroundColor Yellow
+    Write-Host "  cedit <command_name>    : Create or edit a command" -ForegroundColor Yellow
     Write-Host "  cload                 : Load all commands" -ForegroundColor Yellow
     Write-Host "  cdelete <command_name>: Delete a command" -ForegroundColor Yellow
     Write-Host "  chelp                 : Display this help message" -ForegroundColor Yellow
@@ -96,4 +97,5 @@ function chelp {
     Write-Host "`nTo use a command, simply type its name." -ForegroundColor Cyan
 }
 
-Export-ModuleMember -Function cnc, cload, cdelete, chelp
+
+Export-ModuleMember -Function cedit, cload, cdelete, chelp
