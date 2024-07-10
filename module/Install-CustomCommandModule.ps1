@@ -1,3 +1,17 @@
+# Installer für das Custom Command Module
+
+# Definieren Sie die Pfade
+$moduleDir = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\CustomCommandModule"
+$modulePath = "$moduleDir\CustomCommandModule.psm1"
+$profilePath = $PROFILE
+
+# Erstellen Sie das Modulverzeichnis, falls es nicht existiert
+if (-not (Test-Path $moduleDir)) {
+    New-Item -Path $moduleDir -ItemType Directory -Force
+}
+
+# Erstellen Sie das Modul
+$moduleContent = @'
 $global:commandDir = "C:\Users\ZERO\commands"
 
 function Register-CustomCommands {
@@ -21,9 +35,9 @@ function global:$commandName {
         Invoke-Expression $functionDefinition
 
         if (Test-Path Function:\$commandName) {
-            # Write-Host "Registered command $commandName, executable: $exePath" -ForegroundColor Green
+            Write-Host "Registered command $commandName, executable: $exePath" -ForegroundColor Green
         } else {
-            # Write-Host "Failed to register command $commandName, executable: $exePath" -ForegroundColor Red
+            Write-Host "Failed to register command $commandName, executable: $exePath" -ForegroundColor Red
         }
     }
 }
@@ -34,9 +48,9 @@ function cnc {
     )
     & "C:\Users\ZERO\Documents\GitHub\rust_command_loader\target\release\rust_command_loader.exe" cnc $commandName
     if ($LASTEXITCODE -eq 0) {
-        # Write-Host "Command $commandName created/edited successfully." -ForegroundColor Green
+        Write-Host "Command $commandName created/edited successfully." -ForegroundColor Green
     } else {
-        # Write-Host "Failed to create/edit command $commandName." -ForegroundColor Red
+        Write-Host "Failed to create/edit command $commandName." -ForegroundColor Red
     }
 }
 
@@ -44,9 +58,9 @@ function cload {
     & "C:\Users\ZERO\Documents\GitHub\rust_command_loader\target\release\rust_command_loader.exe" cload
     if ($LASTEXITCODE -eq 0) {
         Register-CustomCommands
-        # Write-Host "Commands loaded successfully." -ForegroundColor Green
+        Write-Host "Commands loaded successfully." -ForegroundColor Green
     } else {
-        # Write-Host "Failed to load some commands." -ForegroundColor Red
+        Write-Host "Failed to load some commands." -ForegroundColor Red
     }
 }
 
@@ -97,3 +111,44 @@ function chelp {
 }
 
 Export-ModuleMember -Function cnc, cload, cdelete, chelp
+'@
+
+Set-Content -Path $modulePath -Value $moduleContent
+
+# Aktualisieren Sie das PowerShell-Profil
+$profileContent = @"
+# Import required modules and set up environment
+Import-Module PSReadLine
+Set-PSReadLineOption -PredictionSource History
+Invoke-Expression (& 'C:\Program Files\starship\bin\starship.exe' init powershell)
+
+# Import custom command module
+Import-Module $modulePath
+
+# Load custom commands
+cload
+
+if (`$LASTEXITCODE -eq 0) {
+    Write-Host "Custom commands loaded successfully." -ForegroundColor Green
+} else {
+    Write-Host "Failed to load custom commands." -ForegroundColor Red
+}
+"@
+
+# Erstellen Sie das Profilverzeichnis, falls es nicht existiert
+if (-not (Test-Path (Split-Path $profilePath))) {
+    New-Item -Path (Split-Path $profilePath) -ItemType Directory -Force
+}
+
+# Fügen Sie den neuen Inhalt zum bestehenden Profil hinzu oder erstellen Sie ein neues
+if (Test-Path $profilePath) {
+    $existingContent = Get-Content $profilePath -Raw
+    $updatedContent = $existingContent + "`n`n" + $profileContent
+    Set-Content -Path $profilePath -Value $updatedContent
+} else {
+    Set-Content -Path $profilePath -Value $profileContent
+}
+
+Write-Host "Installation abgeschlossen!" -ForegroundColor Green
+Write-Host "Das Custom Command Module wurde installiert und Ihr PowerShell-Profil wurde aktualisiert." -ForegroundColor Green
+Write-Host "Bitte starten Sie Ihre PowerShell-Sitzung neu oder führen Sie '. `$PROFILE' aus, um die Änderungen zu laden." -ForegroundColor Yellow

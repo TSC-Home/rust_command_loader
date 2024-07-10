@@ -58,13 +58,13 @@ fn main() {
                         eprintln!("Failed to compile command {}: {}", command_name, String::from_utf8_lossy(&output.stderr));
                         success = false;
                     } else {
-                        println!("Successfully compiled command: {}", command_name);
+                        // println!("Successfully compiled command: {}", command_name);
                     }
                 }
             }
 
             if success {
-                println!("All commands loaded successfully.");
+                // println!("All commands loaded successfully.");
             } else {
                 println!("Some commands failed to load.");
             }
