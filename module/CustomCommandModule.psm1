@@ -1,30 +1,36 @@
-
-$global:commandDir = "C:\Users\ZERO\commands"
+$global:commandDir = [System.IO.Path]::Combine($env:USERPROFILE, "commands")
+$global:logDir = [System.IO.Path]::Combine($global:commandDir, "logs")
 
 function Register-CustomCommands {
+    $errors = @()
     Get-ChildItem -Path $global:commandDir -Filter *.exe | ForEach-Object {
         $commandName = $_.BaseName
         $exePath = $_.FullName
-        
-        if (Test-Path Alias:\$commandName) {
-            Remove-Item Alias:\$commandName -Force
-        }
+
         if (Test-Path Function:\$commandName) {
             Remove-Item Function:\$commandName -Force
         }
-        
+
         $functionDefinition = @"
 function global:$commandName {
     & '$exePath' `$args
 }
 "@
-        
         Invoke-Expression $functionDefinition
 
-        if (Test-Path Function:\$commandName) {
-            Write-Host "Registered command $commandName, executable: $exePath" -ForegroundColor Green
-        } else {
-            # Write-Host "Failed to register command $commandName, executable: $exePath" -ForegroundColor Red
+        if (-not (Test-Path Function:\$commandName)) {
+            $errorId = [System.Guid]::NewGuid().ToString()
+            $errors += @{ Name = $commandName; Id = $errorId }
+        }
+    }
+
+    if ($errors.Count -eq 0) {
+        Write-Host "All commands initialized successfully." -ForegroundColor Green
+    } else {
+        foreach ($error in $errors) {
+            $logPath = [System.IO.Path]::Combine($global:logDir, "$($error.Id).log")
+            Set-Content -Path $logPath -Value "Error initializing command $($error.Name)"
+            Write-Host "Custom command $($error.Name) has an error. Logs ID: $($error.Id)" -ForegroundColor Red
         }
     }
 }
@@ -33,21 +39,21 @@ function cedit {
     param (
         [string]$commandName
     )
-    & "C:\Users\ZERO\Documents\GitHub\rust_command_loader\target\release\rust_command_loader.exe" cnc $commandName
+    & [System.IO.Path]::Combine($env:USERPROFILE, "commands\rust_command_loader.exe") cnc $commandName
     if ($LASTEXITCODE -eq 0) {
         Write-Host "Command $commandName created/edited successfully." -ForegroundColor Green
     } else {
-        # Write-Host "Failed to create/edit command $commandName." -ForegroundColor Red
+        Write-Host "Failed to create/edit command $commandName." -ForegroundColor Red
     }
 }
 
 function cload {
-    & "C:\Users\ZERO\Documents\GitHub\rust_command_loader\target\release\rust_command_loader.exe" cload
+    & [System.IO.Path]::Combine($env:USERPROFILE, "commands\rust_command_loader.exe") cload
     if ($LASTEXITCODE -eq 0) {
         Register-CustomCommands
-        # Write-Host "Commands loaded successfully." -ForegroundColor Green
+        Write-Host "Commands loaded successfully." -ForegroundColor Green
     } else {
-        # Write-Host "Failed to load some commands." -ForegroundColor Red
+        Write-Host "Failed to load some commands." -ForegroundColor Red
     }
 }
 
@@ -55,8 +61,8 @@ function cdelete {
     param (
         [string]$commandName
     )
-    $exePath = Join-Path $global:commandDir "$commandName.exe"
-    $rsPath = Join-Path $global:commandDir "$commandName.rs"
+    $exePath = [System.IO.Path]::Combine($global:commandDir, "$commandName.exe")
+    $rsPath = [System.IO.Path]::Combine($global:commandDir, "$commandName.rs")
 
     if (Test-Path $exePath) {
         Remove-Item $exePath -Force
@@ -82,20 +88,34 @@ function cdelete {
 
 function chelp {
     $commands = Get-ChildItem -Path $global:commandDir -Filter *.exe | Select-Object -ExpandProperty BaseName
-    
+
     Write-Host "Available custom commands:" -ForegroundColor Cyan
     foreach ($command in $commands) {
         Write-Host "  $command" -ForegroundColor Yellow
     }
-    
+
     Write-Host "`nUsage:" -ForegroundColor Cyan
     Write-Host "  cedit <command_name>    : Create or edit a command" -ForegroundColor Yellow
     Write-Host "  cload                 : Load all commands" -ForegroundColor Yellow
     Write-Host "  cdelete <command_name>: Delete a command" -ForegroundColor Yellow
     Write-Host "  chelp                 : Display this help message" -ForegroundColor Yellow
-    
+
     Write-Host "`nTo use a command, simply type its name." -ForegroundColor Cyan
 }
 
+function showlog {
+    param (
+        [string]$logId
+    )
+    $logPath = [System.IO.Path]::Combine($global:logDir, "$logId.log")
+    if (Test-Path $logPath) {
+        Get-Content $logPath
+    } else {
+        Write-Host "Log file not found for ID: $logId" -ForegroundColor Yellow
+    }
+}
 
-Export-ModuleMember -Function cedit, cload, cdelete, chelp
+Export-ModuleMember -Function cedit, cload, cdelete, chelp, showlog
+
+# Register commands on module import
+Register-CustomCommands
