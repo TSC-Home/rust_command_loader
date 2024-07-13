@@ -60,10 +60,10 @@ function global:$commandName {
 # Funktion zum Hinzufügen oder Bearbeiten von Befehlen
 function cc {
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$false)]
         [string]$action,
         
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$false)]
         [string]$commandName,
         
         [Parameter(Mandatory=$false)]
@@ -71,6 +71,11 @@ function cc {
     )
 
     $rustCommandLoader = "C:\Users\ZERO\Documents\GitHub\rust_command_loader\target\release\rust_command_loader.exe"
+
+    if (-not $action) {
+        Write-Host "No action specified. Use 'cc help' for usage information." -ForegroundColor Yellow
+        return
+    }
 
     switch ($action) {
         "add" {
@@ -109,9 +114,20 @@ function cc {
                 Write-Host "Command deletion cancelled." -ForegroundColor Yellow
             }
         }
+        "help" {
+            Write-Host "Usage: cc <action> [arguments]" -ForegroundColor Cyan
+            Write-Host "Actions:" -ForegroundColor Cyan
+            Write-Host "  add <command_name> [url_or_path] - Add a new command"
+            Write-Host "  edit <command_name>              - Edit an existing command"
+            Write-Host "  load <command_name>              - Load a specific command"
+            Write-Host "  reload <command_name or 'all'>   - Reload a specific command or all commands"
+            Write-Host "  showlogs <log_id or 0>           - Show logs (0 to open log directory)"
+            Write-Host "  delete <command_name>            - Delete a command (requires confirmation)"
+            Write-Host "  help                             - Show this help message"
+        }
         default {
             Write-Host "Unknown action: $action" -ForegroundColor Red
-            Write-Host "Available actions: add, edit, load, reload, showlogs, delete" -ForegroundColor Yellow
+            Write-Host "Use 'cc help' for usage information." -ForegroundColor Yellow
         }
     }
 }

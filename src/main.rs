@@ -7,6 +7,7 @@ use uuid::Uuid;
 use reqwest;
 use std::io;
 
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let command_dir = env::var("USERPROFILE").unwrap() + "/commands";
@@ -15,7 +16,7 @@ fn main() {
     fs::create_dir_all(&log_dir).expect("Failed to create logs directory");
 
     if args.len() < 2 {
-        eprintln!("Usage: rust_command_loader <command> [arguments]");
+        print_help();
         return;
     }
 
@@ -68,10 +69,25 @@ fn main() {
             let force = args.get(3).map_or(false, |arg| arg == "-y");
             delete_command(&command_dir, command_name, force);
         }
+        "help" => {
+            print_help();
+        }
         _ => {
-            eprintln!("Unknown command: {}", command);
+            eprintln!("Unknown command: {}. Use 'rust_command_loader help' for usage information.", command);
         }
     }
+}
+
+fn print_help() {
+    println!("Usage: rust_command_loader <command> [arguments]");
+    println!("Commands:");
+    println!("  add <command_name> [url_or_path] - Add a new command");
+    println!("  edit <command_name>              - Edit an existing command");
+    println!("  load <command_name>              - Load a specific command");
+    println!("  reload <command_name or 'all'>   - Reload a specific command or all commands");
+    println!("  showlogs <log_id or 0>           - Show logs (0 to open log directory)");
+    println!("  delete <command_name> [-y]       - Delete a command (use -y to skip confirmation)");
+    println!("  help                             - Show this help message");
 }
 
 fn add_command(command_dir: &str, command_name: &str, url_or_path: Option<&String>) {
